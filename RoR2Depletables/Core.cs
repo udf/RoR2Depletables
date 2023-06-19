@@ -97,6 +97,7 @@ namespace RoR2Depletables
         }
 
         public static Dictionary<ItemDef, CustomItem> depletion = new Dictionary<ItemDef, CustomItem>();
+        public static HashSet<ItemDef> depleted = new HashSet<ItemDef>();
 
         public static void OnItemCatalogSetItemDefs(ItemDef[] items)
         {
@@ -104,7 +105,11 @@ namespace RoR2Depletables
             {
                 var ditem = MakeDepletableItem(item,null);
                 if (ItemAPI.Add(ditem))
+                {
                     depletion.Add(item, ditem);
+                    depleted.Add(ditem.ItemDef);
+                }
+                    
             }
         }
 
@@ -145,9 +150,9 @@ namespace RoR2Depletables
             
             var tags = item.tags.Except(DepletedItemTier.exceptTags)
                 .Concat(DepletedItemTier.concatTags).Distinct().ToArray();
-
+            
             var ditem = new CustomItem(
-                item.name, item.nameToken, item.descriptionToken, 
+                "DEPLETED_" + item.name, item.nameToken, item.descriptionToken, 
                 item.loreToken, item.pickupToken, item.pickupIconSprite, 
                 item.pickupModelPrefab, tags, ItemTier.AssignedAtRuntime, true, 
                 item.canRemove, null, rules, null);
