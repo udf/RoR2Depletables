@@ -14,6 +14,7 @@ using HarmonyLib;
 using RoR2.ExpansionManagement;
 using static RoR2Depletables.Core;
 
+#pragma warning disable Publicizer001 // Accessing a member that was not originally public
 namespace RoR2Depletables
 {
     public static class Core
@@ -26,12 +27,13 @@ namespace RoR2Depletables
             {
                 if (tier is null) return ItemTier.NoTier;
                 ItemTier i;
-                if (ItemTierCatalog.availability.available && tier.tier != ItemTier.AssignedAtRuntime) i = tier.tier;
 #pragma warning disable CS0642 // Possible mistaken empty statement
+                if (ItemTierCatalog.availability.available && tier._tier != ItemTier.AssignedAtRuntime) i = tier._tier;
                 else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-3), out i));
+
                 else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-7), out i));
+                else i = tier._tier;
 #pragma warning restore CS0642 // Possible mistaken empty statement
-                else i = tier.tier;
                 if (i == ItemTier.AssignedAtRuntime)
                     i = ItemTier.NoTier;
                 return i;
@@ -58,14 +60,14 @@ namespace RoR2Depletables
             public DepletedItemTier Init(ItemTierDef tier, ItemTier i)
             {
                 cache.Add(i, this);
-                this.tier = i;
+                this._tier = i;
 
                 if (i == ItemTier.NoTier)
                     tier.name = Enum.GetName(typeof(ItemTier),i);
 
                 name = "Depleted" + tier.name;
 
-                this.tier = ItemTier.AssignedAtRuntime;  
+                this._tier = ItemTier.AssignedAtRuntime;  
                 isDroppable = false;
                 canScrap = false;
                 canRestack = false;
@@ -164,24 +166,22 @@ namespace RoR2Depletables
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
-#pragma warning disable Publicizer001 // Accessing a member that was not originally public
             ItemTierDef tier = DepletedItemTier.Get(item.tier);
-            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
                 tier = DepletedItemTier.Get(item._itemTierDef);
-            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
                 tier = item._itemTierDef;
-            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
                 tier = null;
-#pragma warning restore Publicizer001 // Accessing a member that was not originally public
 
-            var itier = tier?.tier ?? item.tier;
+            var itier = tier?._tier ?? item.tier;
             if (itier == ItemTier.AssignedAtRuntime)
             { 
                 itier = ItemTier.NoTier;
                 tier = null;
             }
             else if (tier != null && itier != ItemTier.NoTier)
-                tier.tier = itier;
+                tier._tier = itier;
 
             var tags = GenTags(item.tags);
             var name = "Depleted" + item.name;
@@ -195,7 +195,7 @@ namespace RoR2Depletables
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
 #pragma warning disable Publicizer001 // Accessing a member that was not originally public
-                ditem.ItemDef.tier = ditem.ItemDef._itemTierDef?.tier ?? ditem.ItemDef.tier;
+                ditem.ItemDef.tier = ditem.ItemDef._itemTierDef?._tier ?? ditem.ItemDef.tier;
 #pragma warning restore Publicizer001 // Accessing a member that was not originally public
                 ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
@@ -207,3 +207,4 @@ namespace RoR2Depletables
 
     }
 }
+#pragma warning restore Publicizer001 // Accessing a member that was not originally public
