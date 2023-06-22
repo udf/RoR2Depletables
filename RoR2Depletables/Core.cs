@@ -12,6 +12,7 @@ using static RoR2Depletables.Utils;
 using UnityEngine.AddressableAssets;
 using HarmonyLib;
 using RoR2.ExpansionManagement;
+using static RoR2Depletables.Core;
 
 namespace RoR2Depletables
 {
@@ -19,28 +20,23 @@ namespace RoR2Depletables
     {
         public class DepletedItemTier : ItemTierDef
         {
-            public static List<ItemTag> exceptTags = new List<ItemTag> {ItemTag.Scrap, ItemTag.PriorityScrap};
-            public static List<ItemTag> concatTags = new List<ItemTag> {ItemTag.Cleansable,ItemTag.AIBlacklist};
+            public static Dictionary<ItemTierDef, DepletedItemTier> cache = new Dictionary<ItemTierDef, DepletedItemTier>();
 
-            public static ItemTag? customTag = null;
-
-            public static Dictionary<ItemTier, DepletedItemTier> cache = new Dictionary<ItemTier, DepletedItemTier>();
-
-            public static DepletedItemTier Get(ItemTier tier)
+            public static DepletedItemTier Get(ItemTierDef tier)
             {
-                if (customTag is null)
-                {
-                    customTag = ItemAPI.AddItemTag("Depleted");
-                    concatTags.Add(customTag.Value);
-                }
                 return cache.TryGetValue(tier, out var d) ? d : CreateInstance<DepletedItemTier>().Init(tier);
             }
 
-            public DepletedItemTier Init(ItemTier tier)
+            public static DepletedItemTier New(ItemTierDef tier)
+            {
+                return cache.ContainsKey(tier) ? null : CreateInstance<DepletedItemTier>().Init(tier);
+            }
+
+            public DepletedItemTier Init(ItemTierDef tier)
             {
                 cache.Add(tier, this);
 
-                name = "Depletable_" + Enum.GetName(typeof(ItemTier), tier);
+                name = "Depleted" + tier.name;
 
                 this.tier = ItemTier.AssignedAtRuntime;  
                 isDroppable = false;
@@ -48,76 +44,61 @@ namespace RoR2Depletables
                 canRestack = false;
                 pickupRules = PickupRules.Default;
 
-                switch (tier)
-                {
-                    case ItemTier.Tier1:
-                        colorIndex = ColorCatalog.ColorIndex.Tier1Item;
-                        darkColorIndex = ColorCatalog.ColorIndex.Tier1ItemDark;
-                        bgIconTexture = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier1Def.asset").WaitForCompletion()?.bgIconTexture;
-                        dropletDisplayPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier1Def.asset").WaitForCompletion()?.dropletDisplayPrefab;
-                        highlightPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier1Def.asset").WaitForCompletion()?.highlightPrefab;
-                        break;
-                    case ItemTier.Tier2:
-                        colorIndex = ColorCatalog.ColorIndex.Tier2Item;
-                        darkColorIndex = ColorCatalog.ColorIndex.Tier2ItemDark;
-                        bgIconTexture = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier2Def.asset").WaitForCompletion()?.bgIconTexture;
-                        dropletDisplayPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier2Def.asset").WaitForCompletion()?.dropletDisplayPrefab;
-                        highlightPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier2Def.asset").WaitForCompletion()?.highlightPrefab;
-                        break;
-                    case ItemTier.Tier3:
-                        colorIndex = ColorCatalog.ColorIndex.Tier3Item;
-                        darkColorIndex = ColorCatalog.ColorIndex.Tier3ItemDark;
-                        bgIconTexture = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier3Def.asset").WaitForCompletion()?.bgIconTexture;
-                        dropletDisplayPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier3Def.asset").WaitForCompletion()?.dropletDisplayPrefab;
-                        highlightPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/Tier3Def.asset").WaitForCompletion()?.highlightPrefab;
-                        break;
-                    case ItemTier.Boss:
-                        colorIndex = ColorCatalog.ColorIndex.BossItem;
-                        darkColorIndex = ColorCatalog.ColorIndex.BossItemDark;
-                        bgIconTexture = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/BossDef.asset").WaitForCompletion()?.bgIconTexture;
-                        dropletDisplayPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/BossDef.asset").WaitForCompletion()?.dropletDisplayPrefab;
-                        highlightPrefab = Addressables.LoadAssetAsync<ItemTierDef>
-                            ("RoR2/Base/Common/BossDef.asset").WaitForCompletion()?.highlightPrefab;
-                        break;
-                    default:
-                        colorIndex = ColorCatalog.ColorIndex.WIP;
-                        darkColorIndex = ColorCatalog.ColorIndex.WIP;
-                        bgIconTexture = null;
-                        highlightPrefab = null;
-                        dropletDisplayPrefab = null;
-                        break;
-                }
+                colorIndex = tier.colorIndex;
+                darkColorIndex = tier.darkColorIndex;
+                bgIconTexture = tier.bgIconTexture;
+                highlightPrefab = tier.highlightPrefab;
+                dropletDisplayPrefab = tier.dropletDisplayPrefab;
 
                 return this;
             }
         }
 
+        public static List<ItemTag> exceptTags = new List<ItemTag> {ItemTag.Scrap, ItemTag.PriorityScrap};
+        public static List<ItemTag> concatTags = new List<ItemTag> {ItemTag.Cleansable,ItemTag.AIBlacklist};
+
+        public static ItemTag? customTag = null;
+
+        public static ItemTag[] GenTags(ItemTag[] tags)
+        {
+            if (customTag is null)
+            {
+                customTag = ItemAPI.AddItemTag("Depleted");
+                concatTags.Add(customTag.Value);
+            }
+            return tags.Except(exceptTags).Concat(concatTags).Distinct().ToArray();
+        }
+
         public static Dictionary<ItemDef, CustomItem> depletion = new Dictionary<ItemDef, CustomItem>();
         public static HashSet<ItemDef> depleted = new HashSet<ItemDef>();
 
-        public static ItemDef[]  OnItemCatalogSetItemDefs(ItemDef[] items)
+        public static ItemTierDef[] OnItemTierCatalogInit(ItemTierDef[] tiers)
+        {
+            var ltiers = tiers.ToList();
+            foreach (var tier in tiers)
+            {
+                //Debug.LogWarning("INIT: " + tier.name);
+                var dtier = DepletedItemTier.New(tier);
+                if (dtier != null)
+                {
+                    //Debug.LogWarning("ADD: " + dtier.name);
+                    ltiers.Add(dtier);
+                }
+            }
+            return tiers.ToArray();
+        }
+
+
+        public static ItemDef[] OnItemCatalogSetItemDefs(ItemDef[] items)
         {
             var litems = items.ToList();
-            //var i = items.Count();
             foreach (var item in items)
             {
-                Debug.LogWarning("ONSETDEF: " + item.name);
+                //Debug.LogWarning("ONSETDEF: " + item.name);
                 var ditem = MakeDepletableItem(item);
                 if (ItemAPI.Add(ditem))
                 {
-                    Debug.LogWarning("ADD: " + ditem.ItemDef.name);
-                    //ditem.ItemDef.itemIndex = (ItemIndex)(++i);
+                    //Debug.LogWarning("ADD: " + ditem.ItemDef.name);
                     depletion.Add(item, ditem);
                     depleted.Add(ditem.ItemDef);
                     litems.Add(ditem.ItemDef);
@@ -128,16 +109,15 @@ namespace RoR2Depletables
 
         public static void OnGenerateRuntimeValues(ItemDisplayRuleSet rules)
         {
-            //foreach (var g in rules.keyAssetRuleGroups)
-            //    if (g.keyAsset is ItemDef item && depletion.TryGetValue(item, out var ditem))
-            //    {
-            //        Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
-            //        var _rules = g.displayRuleGroup.rules;
-            //        if (ditem.ItemDisplayRules is null)
-            //            ditem.ItemDisplayRules = new ItemDisplayRuleDict(_rules);
-            //        else ditem.ItemDisplayRules = new ItemDisplayRuleDict(ditem
-            //                .ItemDisplayRules.DefaultRules.AddRangeToArray(_rules));
-            //    }
+            var lassets = new List<ItemDisplayRuleSet.KeyAssetRuleGroup>();
+            foreach (var g in rules.keyAssetRuleGroups)
+                if (g.keyAsset is ItemDef item && depletion.TryGetValue(item, out var ditem))
+                {
+                    //Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
+                    lassets.Add(new ItemDisplayRuleSet.KeyAssetRuleGroup()
+                        { keyAsset = ditem.ItemDef, displayRuleGroup = g.displayRuleGroup });
+                }
+            rules.keyAssetRuleGroups = rules.keyAssetRuleGroups.AddRangeToArray(lassets.ToArray());
         }
 
         public static bool doOriginalItemCount = false;
@@ -159,22 +139,26 @@ namespace RoR2Depletables
         {
             rules = rules?.ToArray();
 
-            var tier = DepletedItemTier.Get(item.tier);
+#pragma warning disable Publicizer001 // Accessing a member that was not originally public
+            var tier = DepletedItemTier.Get(item._itemTierDef);
+#pragma warning restore Publicizer001 // Accessing a member that was not originally public
 
-            var tags = item.tags.Except(DepletedItemTier.exceptTags)
-                .Concat(DepletedItemTier.concatTags).Distinct().ToArray();
-
+            var itier = tier.tier;
+            var tags = GenTags(item.tags);
             var name = "Depleted" + item.name;
 
             var ditem = new CustomItem(
                 name, item.nameToken, item.descriptionToken, 
                 item.loreToken, item.pickupToken, item.pickupIconSprite, 
-                item.pickupModelPrefab, tags, item.tier, true, 
+                item.pickupModelPrefab, tags, itier, item.hidden, 
                 item.canRemove, null, rules, tier);
 
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
-                //ditem.ItemDef.itemIndex = ItemCatalog.FindItemIndex(item.name);
+#pragma warning disable Publicizer001 // Accessing a member that was not originally public
+                ditem.ItemDef.tier = ditem.ItemDef._itemTierDef.tier;
+#pragma warning restore Publicizer001 // Accessing a member that was not originally public
+                ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
                 ditem.ItemDef.requiredExpansion = item.requiredExpansion;
             });

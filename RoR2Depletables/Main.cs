@@ -24,6 +24,13 @@ namespace RoR2Depletables
 
         public void Awake()
         {
+            On.RoR2.ItemTierCatalog.Init += (orig) =>
+            {
+                ref var tiers = ref RoR2.ContentManagement.ContentManager._itemTierDefs;
+                tiers = OnItemTierCatalogInit(tiers);
+                orig.Invoke();
+            };
+
             On.RoR2.ItemCatalog.SetItemDefs += (orig, items) =>
             {
                 items = OnItemCatalogSetItemDefs(items);
