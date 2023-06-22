@@ -26,7 +26,7 @@ namespace RoR2Depletables
         {
             On.RoR2.ItemCatalog.SetItemDefs += (orig, items) =>
             {
-                OnItemCatalogSetItemDefs(items);
+                items = OnItemCatalogSetItemDefs(items);
                 orig.Invoke(items);
             };
 
