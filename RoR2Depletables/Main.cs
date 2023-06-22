@@ -50,15 +50,6 @@ namespace RoR2Depletables
                 return orig.Invoke(inv, item, limit, forced);
             };
 
-            //On.RoR2.Items.ContagiousItemManager.ProcessPendingChanges += (orig) =>
-            //{
-#pragma warning disable Publicizer001 // Accessing a member that was not originally public
-            //    ContagiousItemManager.pendingChanges = ContagiousItemManager.pendingChanges
-            //        .Where(c => !depleted.Contains(ItemCatalog.GetItemDef(c.originalItem))).ToList();
-#pragma warning restore Publicizer001 // Accessing a member that was not originally public
-            //    orig.Invoke();
-            //};
-
             On.RoR2.Inventory.GetItemCount_ItemDef += (orig, inv, item) =>
             {
                 if (!doOriginalItemCount && item != null && depletion.TryGetValue(item, out var ditem))

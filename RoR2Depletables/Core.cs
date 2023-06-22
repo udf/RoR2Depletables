@@ -20,21 +20,48 @@ namespace RoR2Depletables
     {
         public class DepletedItemTier : ItemTierDef
         {
-            public static Dictionary<ItemTierDef, DepletedItemTier> cache = new Dictionary<ItemTierDef, DepletedItemTier>();
+            public static Dictionary<ItemTier, DepletedItemTier> cache = new Dictionary<ItemTier, DepletedItemTier>();
+
+            public static ItemTier Index(ItemTierDef tier)
+            {
+                if (tier is null) return ItemTier.NoTier;
+                ItemTier i;
+                if (ItemTierCatalog.availability.available && tier.tier != ItemTier.AssignedAtRuntime) i = tier.tier;
+#pragma warning disable CS0642 // Possible mistaken empty statement
+                else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-3), out i));
+                else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-7), out i));
+#pragma warning restore CS0642 // Possible mistaken empty statement
+                else i = tier.tier;
+                if (i == ItemTier.AssignedAtRuntime)
+                    i = ItemTier.NoTier;
+                return i;
+            }
 
             public static DepletedItemTier Get(ItemTierDef tier)
             {
-                return cache.TryGetValue(tier, out var d) ? d : CreateInstance<DepletedItemTier>().Init(tier);
+                var i = Index(tier);
+                return i != ItemTier.NoTier && cache.TryGetValue(i, out var d) ? d : null;
+            }
+
+            public static DepletedItemTier Get(ItemTier tier)
+            {
+                return tier != ItemTier.AssignedAtRuntime && tier != ItemTier.NoTier && cache.TryGetValue(tier, out var d) ? d : null;
             }
 
             public static DepletedItemTier New(ItemTierDef tier)
             {
-                return cache.ContainsKey(tier) ? null : CreateInstance<DepletedItemTier>().Init(tier);
+
+                var i = Index(tier);
+                return i == ItemTier.NoTier || cache.ContainsKey(i) ? null : CreateInstance<DepletedItemTier>().Init(tier, i);
             }
 
-            public DepletedItemTier Init(ItemTierDef tier)
+            public DepletedItemTier Init(ItemTierDef tier, ItemTier i)
             {
-                cache.Add(tier, this);
+                cache.Add(i, this);
+                this.tier = i;
+
+                if (i == ItemTier.NoTier)
+                    tier.name = Enum.GetName(typeof(ItemTier),i);
 
                 name = "Depleted" + tier.name;
 
@@ -77,11 +104,11 @@ namespace RoR2Depletables
             var ltiers = tiers.ToList();
             foreach (var tier in tiers)
             {
-                //Debug.LogWarning("INIT: " + tier.name);
+                Debug.LogWarning("INIT: " + tier.name);
                 var dtier = DepletedItemTier.New(tier);
                 if (dtier != null)
                 {
-                    //Debug.LogWarning("ADD: " + dtier.name);
+                    Debug.LogWarning("ADD: " + dtier.name);
                     ltiers.Add(dtier);
                 }
             }
@@ -94,11 +121,11 @@ namespace RoR2Depletables
             var litems = items.ToList();
             foreach (var item in items)
             {
-                //Debug.LogWarning("ONSETDEF: " + item.name);
+                Debug.LogWarning("ONSETDEF: " + item.name);
                 var ditem = MakeDepletableItem(item);
                 if (ItemAPI.Add(ditem))
                 {
-                    //Debug.LogWarning("ADD: " + ditem.ItemDef.name);
+                    Debug.LogWarning("ADD: " + ditem.ItemDef.name);
                     depletion.Add(item, ditem);
                     depleted.Add(ditem.ItemDef);
                     litems.Add(ditem.ItemDef);
@@ -113,7 +140,7 @@ namespace RoR2Depletables
             foreach (var g in rules.keyAssetRuleGroups)
                 if (g.keyAsset is ItemDef item && depletion.TryGetValue(item, out var ditem))
                 {
-                    //Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
+                    Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
                     lassets.Add(new ItemDisplayRuleSet.KeyAssetRuleGroup()
                         { keyAsset = ditem.ItemDef, displayRuleGroup = g.displayRuleGroup });
                 }
@@ -137,13 +164,25 @@ namespace RoR2Depletables
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
-            rules = rules?.ToArray();
-
 #pragma warning disable Publicizer001 // Accessing a member that was not originally public
-            var tier = DepletedItemTier.Get(item._itemTierDef);
+            ItemTierDef tier = DepletedItemTier.Get(item.tier);
+            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+                tier = DepletedItemTier.Get(item._itemTierDef);
+            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+                tier = item._itemTierDef;
+            if ((tier?.tier ?? ItemTier.NoTier) == ItemTier.NoTier)
+                tier = null;
 #pragma warning restore Publicizer001 // Accessing a member that was not originally public
 
-            var itier = tier.tier;
+            var itier = tier?.tier ?? item.tier;
+            if (itier == ItemTier.AssignedAtRuntime)
+            { 
+                itier = ItemTier.NoTier;
+                tier = null;
+            }
+            else if (tier != null && itier != ItemTier.NoTier)
+                tier.tier = itier;
+
             var tags = GenTags(item.tags);
             var name = "Depleted" + item.name;
 
@@ -156,7 +195,7 @@ namespace RoR2Depletables
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
 #pragma warning disable Publicizer001 // Accessing a member that was not originally public
-                ditem.ItemDef.tier = ditem.ItemDef._itemTierDef.tier;
+                ditem.ItemDef.tier = ditem.ItemDef._itemTierDef?.tier ?? ditem.ItemDef.tier;
 #pragma warning restore Publicizer001 // Accessing a member that was not originally public
                 ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
