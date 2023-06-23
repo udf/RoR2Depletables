@@ -157,8 +157,7 @@ namespace RoR2Depletables
         public static string suffixA = "Depleted";
         public static string suffixB = "_DEPLETED";
 
-        public static Color stainHI = new Color(0.8f,0.5f,0.6f);
-        public static Color stainLO = new Color(0.4f,0.1f,0.7f);
+        public static Color stain = new Color(0.4f,0.1f,0.7f);
         public static Texture2D Stain(Texture texture)
         {
             Color? aura = null;
@@ -168,9 +167,7 @@ namespace RoR2Depletables
                 var r = c.gamma;
                 var d = (r-a).grayscale;
                 var s = (float)Math.Tanh(Math.Pow(d/0.1,3));
-                if (s > 0) 
-                    r = r.RGBMultiplied(Color.Lerp(Color.white,stainHI,c.grayscale));
-                else r = r.RGBMultiplied(Color.Lerp(Color.white,stainLO,1-c.grayscale));
+                r = r.RGBMultiplied(Color.Lerp(stain,Color.white,c.grayscale));
                 return Color.Lerp(c,r,Math.Abs(s)).linear.AlphaMultiplied(c.a);
             });
 
