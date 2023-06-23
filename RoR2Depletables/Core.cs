@@ -61,9 +61,9 @@ namespace RoR2Depletables
                 canRestack = false;
                 pickupRules = PickupRules.Default;
 
-                colorIndex = tier.colorIndex;
-                darkColorIndex = tier.darkColorIndex;
-                bgIconTexture = tier.bgIconTexture;
+                colorIndex = ColorCatalog.ColorIndex.VoidItem;//tier.colorIndex;
+                darkColorIndex =  ColorCatalog.ColorIndex.VoidItemDark;//tier.darkColorIndex;
+                bgIconTexture = tier.bgIconTexture;//Stain(tier.bgIconTexture);
                 highlightPrefab = tier.highlightPrefab;
                 dropletDisplayPrefab = tier.dropletDisplayPrefab;
 
@@ -157,6 +157,25 @@ namespace RoR2Depletables
         public static string suffixA = "Depleted";
         public static string suffixB = "_DEPLETED";
 
+        public static Color stainHI = new Color(0.8f,0.5f,0.6f);
+        public static Color stainLO = new Color(0.4f,0.1f,0.7f);
+        public static Texture2D Stain(Texture texture)
+        {
+            Color? aura = null;
+            return texture.Duplicate((x,y,c) => {
+                if (aura is null) aura = c.gamma;
+                var a = aura.Value;
+                var r = c.gamma;
+                var d = (r-a).grayscale;
+                var s = (float)Math.Tanh(Math.Pow(d/0.1,3));
+                if (s > 0) 
+                    r = r.RGBMultiplied(Color.Lerp(Color.white,stainHI,c.grayscale));
+                else r = r.RGBMultiplied(Color.Lerp(Color.white,stainLO,1-c.grayscale));
+                return Color.Lerp(c,r,Math.Abs(s)).linear.AlphaMultiplied(c.a);
+            });
+
+        }
+
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
             if (item.hidden) return null;
@@ -166,7 +185,7 @@ namespace RoR2Depletables
             ItemTierDef tier = DepletedItemTier.Get(item.tier);
             var itier = tier?._tier ?? item.tier;
 
-            Debug.LogWarning(String.Join(", ", item.tags));
+            //Debug.LogWarning(String.Join(", ", item.tags));
             var tags = GenTags(item.tags);
             var name = item.name + suffixA;
             var token = item.nameToken + suffixB;
@@ -182,13 +201,18 @@ namespace RoR2Depletables
 
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
-#pragma warning disable Publicizer001 // Accessing a member that was not originally public
                 ditem.ItemDef.tier = ditem.ItemDef._itemTierDef?._tier ?? ditem.ItemDef.tier;
-#pragma warning restore Publicizer001 // Accessing a member that was not originally public
-                ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
-                ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
                 ditem.ItemDef.requiredExpansion = item.requiredExpansion;
-                ditem.ItemDef.pickupToken = Language.GetString(item.pickupToken) + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.";
+                ditem.ItemDef.pickupToken = Language.GetString(item.pickupToken)
+                    + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.";
+
+                var sprite = item.pickupIconSprite;
+                var texture = Stain(sprite.texture);
+                sprite = Sprite.CreateSprite(texture,sprite.textureRect, sprite.pivot,
+                sprite.pixelsPerUnit, 0, SpriteMeshType.Tight, sprite.border, false);
+                
+                ditem.ItemDef.pickupIconSprite = sprite;
+                ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
             });
 
             return ditem;
