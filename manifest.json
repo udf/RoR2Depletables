@@ -4,7 +4,7 @@
     "website_url": "https://github.com/AndreLouisIssa/RoR2Depletables",
     "description": "Void corruption leaves behind the original as a byproduct.",
     "dependencies": [
-      "RiskofThunder-R2API_Item",
-      "RiskofThunder-R2API_Language"
+      "RiskofThunder-R2API_Item-1.0.3",
+      "RiskofThunder-R2API_Language-1.0.1"
     ]
 }
