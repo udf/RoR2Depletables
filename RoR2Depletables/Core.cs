@@ -71,7 +71,7 @@ namespace RoR2Depletables
             }
         }
 
-        public static List<ItemTag> exceptTags = new List<ItemTag> {ItemTag.Scrap, ItemTag.PriorityScrap};
+        public static List<ItemTag> exceptTags = new List<ItemTag> {};
         public static List<ItemTag> concatTags = new List<ItemTag> {ItemTag.Cleansable,ItemTag.AIBlacklist,ItemTag.WorldUnique};
 
         public static string customTagName = "Depleted";
