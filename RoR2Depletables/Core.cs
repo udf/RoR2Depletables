@@ -1,18 +1,10 @@
-﻿using BepInEx;
-using RoR2;
-using RoR2.Items;
+﻿using RoR2;
 using R2API;
-using R2API.Utils;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using static RoR2Depletables.Utils;
-using UnityEngine.AddressableAssets;
 using HarmonyLib;
-using RoR2.ExpansionManagement;
-using static RoR2Depletables.Core;
 
 #pragma warning disable Publicizer001 // Accessing a member that was not originally public
 namespace RoR2Depletables
@@ -61,9 +53,9 @@ namespace RoR2Depletables
                 canRestack = false;
                 pickupRules = PickupRules.Default;
 
-                colorIndex = ColorCatalog.ColorIndex.VoidItem;//tier.colorIndex;
-                darkColorIndex =  ColorCatalog.ColorIndex.VoidItemDark;//tier.darkColorIndex;
-                bgIconTexture = tier.bgIconTexture;//Stain(tier.bgIconTexture);
+                colorIndex = tier.colorIndex;
+                darkColorIndex =  tier.darkColorIndex;
+                bgIconTexture = tier.bgIconTexture;
                 highlightPrefab = tier.highlightPrefab;
                 dropletDisplayPrefab = tier.dropletDisplayPrefab;
 
@@ -96,13 +88,9 @@ namespace RoR2Depletables
             var ltiers = tiers.ToList();
             foreach (var tier in tiers)
             {
-                //Debug.LogWarning("INIT: " + tier.name);
                 var dtier = DepletedItemTier.New(tier);
                 if (dtier != null)
-                {
-                    //Debug.LogWarning("ADD: " + dtier.name);
                     ltiers.Add(dtier);
-                }
             }
             return tiers.ToArray();
         }
@@ -113,11 +101,9 @@ namespace RoR2Depletables
             var litems = items.ToList();
             foreach (var item in items)
             {
-                //Debug.LogWarning("ONSETDEF: " + item.name);
                 var ditem = MakeDepletableItem(item);
                 if (ditem != null && ItemAPI.Add(ditem))
                 {
-                    //Debug.LogWarning("ADD: " + ditem.ItemDef.name);
                     depletion.Add(item, ditem);
                     depleted.Add(ditem.ItemDef);
                     litems.Add(ditem.ItemDef);
@@ -132,7 +118,6 @@ namespace RoR2Depletables
             foreach (var g in rules.keyAssetRuleGroups)
                 if (g.keyAsset is ItemDef item && depletion.TryGetValue(item, out var ditem))
                 {
-                    //Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
                     lassets.Add(new ItemDisplayRuleSet.KeyAssetRuleGroup()
                         { keyAsset = ditem.ItemDef, displayRuleGroup = g.displayRuleGroup });
                 }
@@ -146,7 +131,6 @@ namespace RoR2Depletables
             var item = ItemCatalog.GetItemDef(original);
             if (depletion.TryGetValue(item,out var ditem))
             {
-                //Debug.LogWarning("CONVERT: " + ditem.ItemDef.name);
                 doOriginalItemCount = true;
                 var count = inventory.GetItemCount(item);
                 doOriginalItemCount = false;
@@ -170,7 +154,6 @@ namespace RoR2Depletables
                 r = r.RGBMultiplied(Color.Lerp(stain,Color.white,c.grayscale));
                 return Color.Lerp(c,r,Math.Abs(s)).linear.AlphaMultiplied(c.a);
             });
-
         }
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
@@ -182,7 +165,6 @@ namespace RoR2Depletables
             ItemTierDef tier = DepletedItemTier.Get(item.tier);
             var itier = tier?._tier ?? item.tier;
 
-            //Debug.LogWarning(String.Join(", ", item.tags));
             var tags = GenTags(item.tags);
             var name = item.name + suffixA;
             var token = item.nameToken + suffixB;

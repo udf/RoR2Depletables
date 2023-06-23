@@ -21,7 +21,6 @@ namespace RoR2Depletables
 {
     [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.0")]
     [NetworkCompatibility()]
-    [BepInDependency("com.bepis.r2api")]
     [BepInDependency(ItemAPI.PluginGUID)]
     [BepInDependency(LanguageAPI.PluginGUID)]
     public class Main : BaseUnityPlugin
