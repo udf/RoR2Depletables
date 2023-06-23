@@ -188,6 +188,10 @@ namespace RoR2Depletables
             var token = item.nameToken + suffixB;
             var descr = item.pickupToken + suffixB;
 
+            LanguageAPI.AddOverlay(token, "Voidtouched " + Language.GetString(item.nameToken));
+            LanguageAPI.AddOverlay(descr, Language.GetString(item.pickupToken)
+                + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.");
+
             var ditem = new CustomItem(
                 name, token, null, 
                 null, descr, item.pickupIconSprite, 
@@ -200,8 +204,6 @@ namespace RoR2Depletables
             {
                 ditem.ItemDef.tier = ditem.ItemDef._itemTierDef?._tier ?? ditem.ItemDef.tier;
                 ditem.ItemDef.requiredExpansion = item.requiredExpansion;
-                ditem.ItemDef.pickupToken = Language.GetString(item.pickupToken)
-                    + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.";
 
                 var sprite = item.pickupIconSprite;
                 var texture = Stain(sprite.texture);

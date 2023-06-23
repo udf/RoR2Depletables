@@ -19,7 +19,11 @@ using Newtonsoft.Json.Utilities;
 
 namespace RoR2Depletables
 {
-    [BepInPlugin("local.RoR2Depletables", "RoR2 Depletables", "0.0.0")]
+    [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.0")]
+    [NetworkCompatibility()]
+    [BepInDependency("com.bepis.r2api")]
+    [BepInDependency(ItemAPI.PluginGUID)]
+    [BepInDependency(LanguageAPI.PluginGUID)]
     public class Main : BaseUnityPlugin
     {
 
@@ -46,14 +50,10 @@ namespace RoR2Depletables
 
             On.RoR2.UI.LogBook.LogBookController.BuildPickupEntries += (orig,exps) =>
             {
-                var entries = new List<RoR2.UI.LogBook.Entry>();
+                var entries = new List<RoR2.UI.LogBook.Entry>(); 
                 foreach (var entry in orig.Invoke(exps))
-                    if (depletedTokens.TryGetValue(entry.nameToken,out var ditem))
-                    {
-                        ditem.nameToken = "Voidtouched " + Language.GetString(entry.nameToken
-                            .Substring(0,entry.nameToken.Length-suffixB.Length));
-                    }
-                    else entries.Add(entry);
+                    if (!depletedTokens.ContainsKey(entry.nameToken))
+                        entries.Add(entry);
                 return entries.ToArray();
             };
 
