@@ -28,21 +28,13 @@ namespace RoR2Depletables
                 if (tier is null) return ItemTier.NoTier;
                 ItemTier i;
 #pragma warning disable CS0642 // Possible mistaken empty statement
-                if (ItemTierCatalog.availability.available && tier._tier != ItemTier.AssignedAtRuntime) i = tier._tier;
-                else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-3), out i));
-
+                if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-3), out i));
                 else if (Enum.TryParse(tier.name.Substring(0,tier.name.Length-7), out i));
                 else i = tier._tier;
 #pragma warning restore CS0642 // Possible mistaken empty statement
                 if (i == ItemTier.AssignedAtRuntime)
                     i = ItemTier.NoTier;
                 return i;
-            }
-
-            public static DepletedItemTier Get(ItemTierDef tier)
-            {
-                var i = Index(tier);
-                return i != ItemTier.NoTier && cache.TryGetValue(i, out var d) ? d : null;
             }
 
             public static DepletedItemTier Get(ItemTier tier)
@@ -54,6 +46,7 @@ namespace RoR2Depletables
             {
 
                 var i = Index(tier);
+                Debug.LogWarning(i);
                 return i == ItemTier.NoTier || cache.ContainsKey(i) ? null : CreateInstance<DepletedItemTier>().Init(tier, i);
             }
 
@@ -62,12 +55,8 @@ namespace RoR2Depletables
                 cache.Add(i, this);
                 this._tier = i;
 
-                if (i == ItemTier.NoTier)
-                    tier.name = Enum.GetName(typeof(ItemTier),i);
-
                 name = "Depleted" + tier.name;
 
-                this._tier = ItemTier.AssignedAtRuntime;  
                 isDroppable = false;
                 canScrap = false;
                 canRestack = false;
@@ -125,7 +114,7 @@ namespace RoR2Depletables
             {
                 Debug.LogWarning("ONSETDEF: " + item.name);
                 var ditem = MakeDepletableItem(item);
-                if (ItemAPI.Add(ditem))
+                if (ditem != null && ItemAPI.Add(ditem))
                 {
                     Debug.LogWarning("ADD: " + ditem.ItemDef.name);
                     depletion.Add(item, ditem);
@@ -166,28 +155,19 @@ namespace RoR2Depletables
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
-            ItemTierDef tier = DepletedItemTier.Get(item.tier);
-            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
-                tier = DepletedItemTier.Get(item._itemTierDef);
-            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
-                tier = item._itemTierDef;
-            if ((tier?._tier ?? ItemTier.NoTier) == ItemTier.NoTier)
-                tier = null;
+            if (item.hidden) return null;
+            if (item.tier == ItemTier.NoTier) return null;
+            if (item.tier == ItemTier.AssignedAtRuntime) return null;
 
+            ItemTierDef tier = DepletedItemTier.Get(item.tier);
             var itier = tier?._tier ?? item.tier;
-            if (itier == ItemTier.AssignedAtRuntime)
-            { 
-                itier = ItemTier.NoTier;
-                tier = null;
-            }
-            else if (tier != null && itier != ItemTier.NoTier)
-                tier._tier = itier;
 
             var tags = GenTags(item.tags);
-            var name = "Depleted" + item.name;
+            var name = item.name + "Depleted";
+            var token = item.nameToken + "_DEPLETED";
 
             var ditem = new CustomItem(
-                name, item.nameToken, item.descriptionToken, 
+                name, token, item.descriptionToken, 
                 item.loreToken, item.pickupToken, item.pickupIconSprite, 
                 item.pickupModelPrefab, tags, itier, item.hidden, 
                 item.canRemove, null, rules, tier);
@@ -200,6 +180,7 @@ namespace RoR2Depletables
                 ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
                 ditem.ItemDef.requiredExpansion = item.requiredExpansion;
+                ditem.ItemDef.nameToken = "Voidtouched " + Language.GetString(item.nameToken);
             });
 
             return ditem;
