@@ -1,17 +1,10 @@
 ﻿using BepInEx;
 using RoR2;
-using RoR2.Items;
 using R2API;
 using R2API.Utils;
-using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.Security.Permissions;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using static RoR2Depletables.Utils;
 using static RoR2Depletables.Core;
-using Newtonsoft.Json.Utilities;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission( SecurityAction.RequestMinimum, SkipVerification = true )]
@@ -20,7 +13,7 @@ using Newtonsoft.Json.Utilities;
 namespace RoR2Depletables
 {
     [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.0")]
-    [NetworkCompatibility()]
+    [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
     [BepInDependency(ItemAPI.PluginGUID)]
     [BepInDependency(LanguageAPI.PluginGUID)]
     public class Main : BaseUnityPlugin

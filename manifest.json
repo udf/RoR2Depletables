@@ -1,0 +1,10 @@
+{
+    "name": "RoR2Depletables",
+    "version_number": "1.0.0",
+    "website_url": "https://github.com/AndreLouisIssa/RoR2Depletables",
+    "description": "Void corruption leaves behind the original as a byproduct.",
+    "dependencies": [
+      "RiskofThunder-R2API_Item",
+      "RiskofThunder-R2API_Language"
+    ]
+}
