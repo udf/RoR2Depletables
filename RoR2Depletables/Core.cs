@@ -46,16 +46,15 @@ namespace RoR2Depletables
             {
 
                 var i = Index(tier);
-                Debug.LogWarning(i);
                 return i == ItemTier.NoTier || cache.ContainsKey(i) ? null : CreateInstance<DepletedItemTier>().Init(tier, i);
             }
 
             public DepletedItemTier Init(ItemTierDef tier, ItemTier i)
             {
                 cache.Add(i, this);
-                this._tier = i;
+                _tier = i;
 
-                name = "Depleted" + tier.name;
+                name = suffixA + tier.name;
 
                 isDroppable = false;
                 canScrap = false;
@@ -73,15 +72,16 @@ namespace RoR2Depletables
         }
 
         public static List<ItemTag> exceptTags = new List<ItemTag> {ItemTag.Scrap, ItemTag.PriorityScrap};
-        public static List<ItemTag> concatTags = new List<ItemTag> {ItemTag.Cleansable,ItemTag.AIBlacklist};
+        public static List<ItemTag> concatTags = new List<ItemTag> {ItemTag.Cleansable,ItemTag.AIBlacklist,ItemTag.WorldUnique};
 
+        public static string customTagName = "Depleted";
         public static ItemTag? customTag = null;
 
         public static ItemTag[] GenTags(ItemTag[] tags)
         {
             if (customTag is null)
             {
-                customTag = ItemAPI.AddItemTag("Depleted");
+                customTag = ItemAPI.AddItemTag(customTagName);
                 concatTags.Add(customTag.Value);
             }
             return tags.Except(exceptTags).Concat(concatTags).Distinct().ToArray();
@@ -89,17 +89,18 @@ namespace RoR2Depletables
 
         public static Dictionary<ItemDef, CustomItem> depletion = new Dictionary<ItemDef, CustomItem>();
         public static HashSet<ItemDef> depleted = new HashSet<ItemDef>();
+        public static Dictionary<string, ItemDef> depletedTokens = new Dictionary<string, ItemDef>();
 
         public static ItemTierDef[] OnItemTierCatalogInit(ItemTierDef[] tiers)
         {
             var ltiers = tiers.ToList();
             foreach (var tier in tiers)
             {
-                Debug.LogWarning("INIT: " + tier.name);
+                //Debug.LogWarning("INIT: " + tier.name);
                 var dtier = DepletedItemTier.New(tier);
                 if (dtier != null)
                 {
-                    Debug.LogWarning("ADD: " + dtier.name);
+                    //Debug.LogWarning("ADD: " + dtier.name);
                     ltiers.Add(dtier);
                 }
             }
@@ -112,11 +113,11 @@ namespace RoR2Depletables
             var litems = items.ToList();
             foreach (var item in items)
             {
-                Debug.LogWarning("ONSETDEF: " + item.name);
+                //Debug.LogWarning("ONSETDEF: " + item.name);
                 var ditem = MakeDepletableItem(item);
                 if (ditem != null && ItemAPI.Add(ditem))
                 {
-                    Debug.LogWarning("ADD: " + ditem.ItemDef.name);
+                    //Debug.LogWarning("ADD: " + ditem.ItemDef.name);
                     depletion.Add(item, ditem);
                     depleted.Add(ditem.ItemDef);
                     litems.Add(ditem.ItemDef);
@@ -131,7 +132,7 @@ namespace RoR2Depletables
             foreach (var g in rules.keyAssetRuleGroups)
                 if (g.keyAsset is ItemDef item && depletion.TryGetValue(item, out var ditem))
                 {
-                    Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
+                    //Debug.LogWarning("UPDATEDDISPLAY: " + ditem.ItemDef.name);
                     lassets.Add(new ItemDisplayRuleSet.KeyAssetRuleGroup()
                         { keyAsset = ditem.ItemDef, displayRuleGroup = g.displayRuleGroup });
                 }
@@ -145,13 +146,16 @@ namespace RoR2Depletables
             var item = ItemCatalog.GetItemDef(original);
             if (depletion.TryGetValue(item,out var ditem))
             {
-                Debug.LogWarning("CONVERT: " + ditem.ItemDef.name);
+                //Debug.LogWarning("CONVERT: " + ditem.ItemDef.name);
                 doOriginalItemCount = true;
                 var count = inventory.GetItemCount(item);
                 doOriginalItemCount = false;
                 inventory.GiveItem(ditem.ItemDef, Math.Min(count,limit));
             }
         }
+
+        public static string suffixA = "Depleted";
+        public static string suffixB = "_DEPLETED";
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
@@ -162,15 +166,19 @@ namespace RoR2Depletables
             ItemTierDef tier = DepletedItemTier.Get(item.tier);
             var itier = tier?._tier ?? item.tier;
 
+            Debug.LogWarning(String.Join(", ", item.tags));
             var tags = GenTags(item.tags);
-            var name = item.name + "Depleted";
-            var token = item.nameToken + "_DEPLETED";
+            var name = item.name + suffixA;
+            var token = item.nameToken + suffixB;
+            var descr = item.pickupToken + suffixB;
 
             var ditem = new CustomItem(
-                name, token, item.descriptionToken, 
-                item.loreToken, item.pickupToken, item.pickupIconSprite, 
-                item.pickupModelPrefab, tags, itier, item.hidden, 
-                item.canRemove, null, rules, tier);
+                name, token, null, 
+                null, descr, item.pickupIconSprite, 
+                item.pickupModelPrefab, tags, itier, false, 
+                false, null, rules, tier);
+
+            depletedTokens.Add(token,ditem.ItemDef);
 
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
@@ -180,7 +188,7 @@ namespace RoR2Depletables
                 ditem.ItemDef.pickupIconSprite = item.pickupIconSprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
                 ditem.ItemDef.requiredExpansion = item.requiredExpansion;
-                ditem.ItemDef.nameToken = "Voidtouched " + Language.GetString(item.nameToken);
+                ditem.ItemDef.pickupToken = Language.GetString(item.pickupToken) + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.";
             });
 
             return ditem;

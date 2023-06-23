@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using static RoR2Depletables.Utils;
 using static RoR2Depletables.Core;
+using Newtonsoft.Json.Utilities;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission( SecurityAction.RequestMinimum, SkipVerification = true )]
@@ -41,6 +42,19 @@ namespace RoR2Depletables
             {
                 orig.Invoke(rules);
                 OnGenerateRuntimeValues(rules);
+            };
+
+            On.RoR2.UI.LogBook.LogBookController.BuildPickupEntries += (orig,exps) =>
+            {
+                var entries = new List<RoR2.UI.LogBook.Entry>();
+                foreach (var entry in orig.Invoke(exps))
+                    if (depletedTokens.TryGetValue(entry.nameToken,out var ditem))
+                    {
+                        ditem.nameToken = "Voidtouched " + Language.GetString(entry.nameToken
+                            .Substring(0,entry.nameToken.Length-suffixB.Length));
+                    }
+                    else entries.Add(entry);
+                return entries.ToArray();
             };
 
             On.RoR2.Items.ContagiousItemManager.StepInventoryInfection += (orig, inv, item, limit, forced) =>
