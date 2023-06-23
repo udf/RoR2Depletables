@@ -12,7 +12,7 @@ using static RoR2Depletables.Core;
 
 namespace RoR2Depletables
 {
-    [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.0")]
+    [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.2")]
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
     [BepInDependency(ItemAPI.PluginGUID)]
     [BepInDependency(LanguageAPI.PluginGUID)]
