@@ -12,7 +12,7 @@ using static RoR2Depletables.Core;
 
 namespace RoR2Depletables
 {
-    [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.2")]
+    [BepInPlugin("com.MagicGonads.RoR2Depletables", "Voidtouched Items", "1.0.3")]
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
     [BepInDependency(ItemAPI.PluginGUID)]
     [BepInDependency(LanguageAPI.PluginGUID)]
@@ -44,8 +44,10 @@ namespace RoR2Depletables
             {
                 var entries = new List<RoR2.UI.LogBook.Entry>(); 
                 foreach (var entry in orig.Invoke(exps))
-                    if (!depletedTokens.ContainsKey(entry.nameToken))
-                        entries.Add(entry);
+                    if (depletedTokens.ContainsKey(entry.nameToken) 
+                        && delayedLanguage.TryGetValue(entry.nameToken, out var action))
+                        action.Invoke();
+                    else entries.Add(entry);
                 return entries.ToArray();
             };
 

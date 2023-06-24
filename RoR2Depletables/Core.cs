@@ -156,6 +156,8 @@ namespace RoR2Depletables
             });
         }
 
+        public static Dictionary<string,Action> delayedLanguage = new Dictionary<string,Action>();
+
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
             if (item.hidden) return null;
@@ -169,10 +171,6 @@ namespace RoR2Depletables
             var name = item.name + suffixA;
             var token = item.nameToken + suffixB;
             var descr = item.pickupToken + suffixB;
-
-            LanguageAPI.AddOverlay(token, "Voidtouched " + Language.GetString(item.nameToken));
-            LanguageAPI.AddOverlay(descr, Language.GetString(item.pickupToken)
-                + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.");
 
             var ditem = new CustomItem(
                 name, token, null, 
@@ -194,6 +192,13 @@ namespace RoR2Depletables
                 
                 ditem.ItemDef.pickupIconSprite = sprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
+            });
+
+            delayedLanguage.Add(token,() => {
+                delayedLanguage.Remove(token);
+                LanguageAPI.AddOverlay(token, "Voidtouched " + Language.GetString(item.nameToken));
+                LanguageAPI.AddOverlay(descr, Language.GetString(item.pickupToken)
+                    + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.");
             });
 
             return ditem;
