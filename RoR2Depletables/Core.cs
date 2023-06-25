@@ -157,6 +157,7 @@ namespace RoR2Depletables
         }
 
         public static Dictionary<string,Action> delayedLanguage = new Dictionary<string,Action>();
+        public static string extraDescription = " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.";
 
         public static CustomItem MakeDepletableItem(ItemDef item, ItemDisplayRule[] rules = null)
         {
@@ -168,13 +169,11 @@ namespace RoR2Depletables
             var itier = tier?._tier ?? item.tier;
 
             var tags = GenTags(item.tags);
-            var name = item.name + suffixA;
             var token = item.nameToken + suffixB;
-            var descr = item.pickupToken + suffixB;
 
             var ditem = new CustomItem(
-                name, token, null, 
-                null, descr, item.pickupIconSprite, 
+                item.name + suffixA, token, item.descriptionToken + suffixB,
+                item.loreToken, item.pickupToken + suffixB, item.pickupIconSprite, 
                 item.pickupModelPrefab, tags, itier, false, 
                 false, null, rules, tier);
 
@@ -188,17 +187,17 @@ namespace RoR2Depletables
                 var sprite = item.pickupIconSprite;
                 var texture = Stain(sprite.texture);
                 sprite = Sprite.CreateSprite(texture,sprite.textureRect, sprite.pivot,
-                sprite.pixelsPerUnit, 0, SpriteMeshType.Tight, sprite.border, false);
+                sprite.pixelsPerUnit, 0, SpriteMeshType.FullRect, sprite.border, false);
                 
                 ditem.ItemDef.pickupIconSprite = sprite;
                 ditem.ItemDef.pickupModelPrefab = item.pickupModelPrefab;
             });
 
             delayedLanguage.Add(token,() => {
-                delayedLanguage.Remove(token);
-                LanguageAPI.AddOverlay(token, "Voidtouched " + Language.GetString(item.nameToken));
-                LanguageAPI.AddOverlay(descr, Language.GetString(item.pickupToken)
-                    + " <style=cIsUtility>Cannot be <style=cIsVoid>corrupted</style></style>.");
+                delayedLanguage.Remove(ditem.ItemDef.nameToken);
+                LanguageAPI.AddOverlay(ditem.ItemDef.nameToken, "Voidtouched " + Language.GetString(item.nameToken));
+                LanguageAPI.AddOverlay(ditem.ItemDef.pickupToken, Language.GetString(item.pickupToken) + extraDescription);
+                LanguageAPI.AddOverlay(ditem.ItemDef.descriptionToken, Language.GetString(item.descriptionToken) + extraDescription);
             });
 
             return ditem;
