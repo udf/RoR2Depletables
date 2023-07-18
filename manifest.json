@@ -1,6 +1,6 @@
 {
     "name": "RoR2Depletables",
-    "version_number": "1.0.4",
+    "version_number": "1.0.5",
     "website_url": "https://github.com/AndreLouisIssa/RoR2Depletables",
     "description": "Void corruption leaves behind the original as a byproduct.",
     "dependencies": [

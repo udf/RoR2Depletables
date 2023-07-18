@@ -93,6 +93,11 @@ namespace RoR2Depletables
             return new Rect(-w2, -h2, w, h);
         }
 
+        public static Color NoAlpha(this Color color) 
+        {
+            return new Color(color.r, color.g, color.b);
+        }
+
         public static Color AlphaFlattened(this Color color) 
         {
             if (color.a <= 0) return color;
