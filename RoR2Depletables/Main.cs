@@ -19,7 +19,7 @@ namespace RoR2Depletables
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
     [BepInDependency(ItemAPI.PluginGUID)]
     [BepInDependency(LanguageAPI.PluginGUID)]
-    //[BepInDependency("com.MagicGonads.RoR2TierScaling", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("com.MagicGonads.RoR2TierScaling", BepInDependency.DependencyFlags.SoftDependency)]
     public class Main : BaseUnityPlugin
     {
         public static ConfigEntry<bool> configIconColours;
@@ -51,7 +51,7 @@ namespace RoR2Depletables
             configDepletedColour = Config.Bind(
                 "0. Main",
                 "Depleted Colour",
-                new Color(0.4f,0.1f,0.7f),
+                new Color(0.8f,0.1f,0.6f),
                 "The colour to mix in with the original colour for depleted items."
             );
 
@@ -94,11 +94,14 @@ namespace RoR2Depletables
             {
                 On.RoR2.ItemCatalog.SetItemDefs += (_orig, items) =>
                 {
-                    LateOnItemCatalogSetItemDefs(items);
                     _orig.Invoke(items);
+#pragma warning disable Publicizer001 // Accessing a member that was not originally public
+                    LateOnItemCatalogSetItemDefs(ItemCatalog.itemDefs);
+#pragma warning restore Publicizer001 // Accessing a member that was not originally public
                 };
-                ref var tiers = ref RoR2.ContentManagement.ContentManager._itemTierDefs;
+                var tiers = RoR2.ContentManagement.ContentManager._itemTierDefs;
                 tiers = OnItemTierCatalogInit(tiers);
+                RoR2.ContentManagement.ContentManager._itemTierDefs = tiers;
                 orig.Invoke();
             };
 
@@ -128,9 +131,10 @@ namespace RoR2Depletables
 
             On.RoR2.UI.LogBook.LogBookController.BuildPickupEntries += (orig,exps) =>
             {
+                var entries = orig.Invoke(exps);
                 foreach (var action in delayedLanguage) action.Invoke();
-                if (configShowLogbook.Value) return orig.Invoke(exps);
-                return orig.Invoke(exps).Where(e => !depletedTokens.ContainsKey(e.nameToken)).ToArray();
+                if (configShowLogbook.Value) return entries;
+                return entries.Where(e => !depletedTokens.ContainsKey(e.nameToken)).ToArray();
             };
 
             On.RoR2.Items.ContagiousItemManager.StepInventoryInfection += (orig, inv, item, limit, forced) =>

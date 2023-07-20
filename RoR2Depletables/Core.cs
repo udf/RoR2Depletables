@@ -116,25 +116,38 @@ namespace RoR2Depletables
             {
                 var ditem = MakeDepletableItem(item);
                 if (ditem != null && ItemAPI.Add(ditem))
-                {
-                    depletion.Add(item, ditem.ItemDef);
-                    depleted.Add(ditem.ItemDef);
                     litems.Add(ditem.ItemDef);
-                }
             }
             return litems.ToArray();
         }
 
         public static void LateOnItemCatalogSetItemDefs(ItemDef[] items)
         {
-            // this is so other mods can mess with the items and it might still work
-            // so long as they kept the tag intact
-            var ditems = items.Where(i => i.ContainsTag(customTag.Value));
-            var nitems = items.Where(i => i.DoesNotContainTag(customTag.Value));
+            // this is so other mods can further derive items and it might still work
+            // so long as they kept the tag intact and it's possible to find the base item
+
+            var ditems = items.Where(i => !depleted.Contains(i) && i.ContainsTag(customTag.Value));
+            var nitems = items.Where(i => i.DoesNotContainTag(customTag.Value)).ToList();
+
             ItemDef item;
             foreach (var ditem in ditems)
-                if (null != (item = nitems.FirstOrDefault(i => i.loreToken == ditem.loreToken)))
-                    LateMakeDepletableItem(ditem, item);
+            {
+                // assume derived items will leave the lore unchanged
+                var loreMatched = nitems.Where(i => i.loreToken == ditem.loreToken).ToList();
+                if (loreMatched.Count == 0) continue;
+                if (loreMatched.Count == 1) item = loreMatched.First();
+                else
+                {
+                    // there may be multiple derived items, maybe they are arranged by tier?
+                    var tierMatched = loreMatched.Where(i => i.tier == ditem.tier).ToList();
+                    if (tierMatched.Count == 0) 
+                        item = loreMatched.First();
+                    item = tierMatched.First();
+                }
+
+                nitems.Remove(item);
+                LateMakeDepletableItem(ditem, item);
+            }
         }
 
         public static void OnGenerateRuntimeValues(ItemDisplayRuleSet rules)
@@ -181,7 +194,7 @@ namespace RoR2Depletables
                 var d = c-a;
                 var m = d.r*d.r + d.g*d.g + d.b*d.b;
                 var s = (float)Math.Abs(Math.Tanh(4*m));
-                return Color.Lerp(stain,c,s).AlphaMultiplied(c.a);
+                return Color.Lerp(stain,c,(1+2*s)/3).AlphaMultiplied(c.a);
             });
         }
 
@@ -194,8 +207,8 @@ namespace RoR2Depletables
             if (!configMakeDepleted.Value) return null;
 
             var lname = Language.GetString(item.nameToken, configLanguage.Value);
-            var exclude = excludedItems.Contains(item.name.ToLower()) 
-                || excludedItems.Contains(item.nameToken.ToLower()) 
+            var exclude = excludedItems.Contains(item.name.ToLower())
+                || excludedItems.Contains(item.nameToken.ToLower())
                 || excludedItems.Contains(lname.ToLower());
             if (exclude != configInvertBlacklist.Value) return null;
 
@@ -205,18 +218,26 @@ namespace RoR2Depletables
             var tags = GenTags(item.tags);
             var token = item.nameToken + suffixB;
 
-            return new CustomItem(
+            var ditem = new CustomItem(
                 item.name + suffixA, token, item.descriptionToken + suffixB,
                 item.loreToken, item.pickupToken + suffixB, item.pickupIconSprite, 
                 item.pickupModelPrefab, tags, itier, false, 
                 false, item.unlockableDef, rules, tier);
+
+            LateMakeDepletableItem(ditem.ItemDef, item);
+            return ditem;
+        }
+
+        public static void RegisterDepletableItem(ItemDef ditem, ItemDef item)
+        {
+            depletion[item] = ditem;
+            depleted.Add(ditem);
+            depletedTokens[ditem.nameToken] = ditem;
         }
 
         public static void LateMakeDepletableItem(ItemDef ditem, ItemDef item)
         {
-            depletion.Add(item, ditem);
-            depleted.Add(ditem);
-            depletedTokens.Add(ditem.nameToken,ditem);
+            RegisterDepletableItem(ditem, item);
 
             ItemCatalog.availability.CallWhenAvailable(() =>
             {
