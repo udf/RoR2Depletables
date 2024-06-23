@@ -8,9 +8,12 @@ using static RoR2Depletables.Core;
 using BepInEx.Configuration;
 using System.Linq;
 using UnityEngine;
+using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using Mono.Cecil;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-[assembly: SecurityPermission( SecurityAction.RequestMinimum, SkipVerification = true )]
+[assembly: SecurityPermission( System.Security.Permissions.SecurityAction.RequestMinimum, SkipVerification = true )]
 #pragma warning restore CS0618 // Type or member is obsolete
 
 namespace RoR2Depletables
@@ -173,6 +176,40 @@ namespace RoR2Depletables
                     doOriginalItemCount = false;
                 }
                 else orig.Invoke(inv, item, amount);
+            };
+
+            // patch the on hit enemy function to always run the plasma shrimp checks
+            IL.RoR2.GlobalEventManager.OnHitEnemy += (il) =>
+            {
+                ILCursor cursor = new ILCursor(il);
+                ILLabel endOfMissileChecks = null;
+                cursor.GotoNext(
+                    // end of code to that fires the regular ATG
+                    instr => instr.MatchCallOrCallvirt("RoR2.MissileUtils", "FireMissile"),
+                    // branch that goes past the plasma shrimp check (will be patched)
+                    instr => instr.MatchBr(out endOfMissileChecks),
+                    // code to fire the plasma shrimp
+                    instr => instr.MatchLdloc(5),
+                    instr => instr.MatchLdsfld("RoR2.DLC1Content/Items", "MissileVoid"),
+                    instr => instr.MatchCallvirt<RoR2.Inventory>("GetItemCount")
+                );
+                cursor.Index += 2;
+                // the plasma shrimp code now is the next instruction, make a label for it
+                ILLabel processPlasmaShrimp = cursor.MarkLabel();
+                // and patch the branch so we always run the plasma shrimp code
+                cursor.Previous.Operand = processPlasmaShrimp;
+
+                // find the roll for the regular ATG (it branches past the plasma shrimp code on failure)
+                cursor.GotoPrev(
+                    MoveType.After,
+                    instr => instr.MatchCallOrCallvirt("RoR2.Util", "CheckRoll"),
+                    instr => {
+                        instr.MatchBrfalse(out ILLabel tmpLabel);
+                        return tmpLabel?.Target == endOfMissileChecks.Target;
+                    }
+                );
+                // patch the branch so we always run the plasma shrimp code
+                cursor.Previous.Operand = processPlasmaShrimp;
             };
         }
 
